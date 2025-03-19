@@ -1,10 +1,14 @@
 package com.image_upload_utility.controller;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -33,125 +37,152 @@ public class ProductController {
 	return "upload";
 	}
 	
-	@PostMapping("/uploadImage")
-	public String uploadImages(@RequestParam("folderPath") String folderPath,
-			@RequestParam(value = "confirmUpdate", required = false) Boolean confirmUpdate,
-			RedirectAttributes redirectAttributes) {
-
-		// Step 1: Validate folder path and size
-		long folderSize = productService.getFolderSize(folderPath);
-
-		if (folderSize == -1) {
-			redirectAttributes.addFlashAttribute("errorMessage", "The folder does not exist. Please check the path.");
-			return "redirect:/upload";
-		}
-		if (folderSize == 0) {
-			redirectAttributes.addFlashAttribute("errorMessage", "The folder is empty.");
-			return "redirect:/upload";
-		}
-		if (folderSize > MAX_FILE_SIZE) {
-			redirectAttributes.addFlashAttribute("errorMessage","The file size is too large. Only files up to 50MB are allowed!");
-			return "redirect:/upload";
-		}
-
-		// Step 2: Validate folder image count
-		List<String> invalidFolders = productService.validateSubfolderImageCount(folderPath);
-		if (!invalidFolders.isEmpty()) {
-		    redirectAttributes.addFlashAttribute("errorMessage",
-		        "Error: The following subfolders do not have between 3 and 5 images: " + invalidFolders);
-		    return "redirect:/upload";
-		}
-
-
-		// Step 3: Check for multiple _h.jpg images in subfolders
-		Optional<String> violatingFolder = productService.findFolderWithMultipleHImages(folderPath);
-		if (violatingFolder.isPresent()) {
-			redirectAttributes.addFlashAttribute("errorMessage", "Error: Folder '" + violatingFolder.get()
-					+ "' contains more than one _h.jpg image. Only one _h.jpg is allowed per folder.");
-			return "redirect:/upload";
-		}
-
-		// Step 4: Validate productDeptCode (folder names) exist in DB
-		List<String> missingFolders = productService.getMissingFolderNamesInDB(folderPath);
-		if (!missingFolders.isEmpty()) {
-			String missingCodes = String.join(", ", missingFolders);
-			redirectAttributes.addFlashAttribute("errorMessage",
-					"The following productDeptCode(s) are missing in the database: <strong>" + missingCodes
-							+ "</strong>");
-			return "redirect:/upload";
-		}
-
-		// Step 5: Check images exist in images and image_details table
-		if (productService.checkImagesExistsInDB(folderPath)) {
-			if (Boolean.TRUE.equals(confirmUpdate)) {
-				productService.deleteExistingImages(folderPath);
-				redirectAttributes.addFlashAttribute("successMessage",
-						"Existing images deleted. You can upload again.");
-			} else {
-				redirectAttributes.addFlashAttribute("confirmMessage",
-						"Alert: This data already exists. Do you wish to update?");
-				redirectAttributes.addFlashAttribute("folderPath", folderPath);
-				return "redirect:/upload";
-			}
-		}
-		
-		// step 5: process image (size , thumbnail, compress)
-		productService.processImages(folderPath);
-
-		redirectAttributes.addFlashAttribute("successMessage", "File uploaded successfully, thank you!");
-		return "redirect:/upload";
-	}
-	
 	@PostMapping("/uploadFolder")
 	public String handleFolderUpload(@RequestParam("files") MultipartFile[] files,
-	                                 RedirectAttributes redirectAttributes) {
+	                                 @RequestParam(value = "confirmUpdate", required = false) Boolean confirmUpdate,
+	                                 RedirectAttributes redirectAttributes,
+	                                 Model model) {
 
+	    List<String> errorMessages = new ArrayList<>();
+
+	     // Step 1: Check no files are selected
 	    if (files.length == 0) {
-	        redirectAttributes.addFlashAttribute("message", "No files selected.");
+	        errorMessages.add("No files selected.");
+	    }
+	    
+	   // Step 2: Cal total file size 
+	    long totalSize = Arrays.stream(files)
+	            .mapToLong(file -> file.getSize())
+	            .sum();
+
+	    if (totalSize > MAX_FILE_SIZE) {
+	        redirectAttributes.addFlashAttribute("errorMessage",
+	                "The file size is too large. Only folders up to 50MB are allowed!");
 	        return "redirect:/upload";
 	    }
-
-	    // Map to group files by subfolder
+	    
+	    // Step 3: Group files by subfolder
 	    Map<String, List<MultipartFile>> subfolderMap = new HashMap<>();
+	    Set<String> allFolderNames = new HashSet<>();  // Unique folder names
 
 	    for (MultipartFile file : files) {
-	        String relativePath = file.getOriginalFilename(); // e.g., FinalImages/gaha872/image1.jpg
+	        String relativePath = file.getOriginalFilename();
 	        if (relativePath == null || !relativePath.contains("/")) continue;
 
 	        String[] pathParts = relativePath.split("/");
+	        if (pathParts.length < 2) continue;
 
-	        // Step 1: Extract Root Folder (first part)
-	        String rootFolder = pathParts[0];  // FinalImages
+	        String folderName = pathParts[1].trim();
+	        allFolderNames.add(folderName);  // Collect unique folder names
 
-	        // Step 2: Extract Subfolder (second part)
-	        String subFolder = pathParts.length > 2 ? pathParts[1] : "UNKNOWN";
-
-	        // Group by subfolder
-	        subfolderMap.computeIfAbsent(subFolder, k -> new ArrayList<>()).add(file);
+	        subfolderMap.computeIfAbsent(folderName, k -> new ArrayList<>()).add(file);
 	    }
 
-	    // Step 3: Print Folder Structure
-	    for (Map.Entry<String, List<MultipartFile>> entry : subfolderMap.entrySet()) {
-	        String subfolderName = entry.getKey();
-	        List<MultipartFile> imageFiles = entry.getValue();
+	    // check unique folder 
+	    Map<String, List<String>> normalizedFolderMap = new HashMap<>();
+	    for (String folderName : allFolderNames) {
+	        String normalizedName = folderName.replaceAll(" - Copy( \\(\\d+\\))?$", "").trim();
+	        normalizedFolderMap.computeIfAbsent(normalizedName, k -> new ArrayList<>()).add(folderName);
+	    }
 
-	       System.out.println("Subfolder: " + subfolderName + " | Image Count: " + imageFiles.size());
-	        
-	        System.out.println(subfolderName);
+	    // Step 4: check for duplicates
+	    Set<String> duplicateFolders = new HashSet<>();
+	    for (Map.Entry<String, List<String>> entry : normalizedFolderMap.entrySet()) {
+	        List<String> variants = entry.getValue();
+	        if (variants.size() > 1) {
+	            duplicateFolders.addAll(variants); 
+	    }
+	    }
 
-	        // Validate image count (3 to 5)
+	    System.out.println("Duplicate Folders Detected: " + duplicateFolders);
+
+
+
+	    List<String> folderNames = new ArrayList<>(subfolderMap.keySet());
+
+	    // Step 5: Validate image count (3 to 5) and single _h.jpg per folder
+	    List<String> invalidImageCountFolders = new ArrayList<>();
+	    List<String> multipleHImageFolders = new ArrayList<>();
+	    List<String> doesnotExistHImageFolders = new ArrayList<>();
+
+	    for (Map.Entry<String, List<MultipartFile>> entry1 : subfolderMap.entrySet()) {
+	        String subfolderName = entry1.getKey();
+	        List<MultipartFile> imageFiles = entry1.getValue();
+
 	        if (imageFiles.size() < 3 || imageFiles.size() > 5) {
-	            redirectAttributes.addFlashAttribute("message",
-	                    "Subfolder " + subfolderName + " has invalid image count: " + imageFiles.size());
-	            return "redirect:/upload";
+	            invalidImageCountFolders.add(subfolderName);
 	        }
 
-	        // TODO: Process imageFiles (save, compress, etc.)
+	        long hImageCount = imageFiles.stream()
+	                .filter(f -> f.getOriginalFilename() != null && f.getOriginalFilename().toLowerCase().endsWith("_h.jpg"))
+	                .count();
+	        if (hImageCount > 1) {
+	            multipleHImageFolders.add(subfolderName);
+	        }
+	        
+	        if (hImageCount == 0) {
+	        	doesnotExistHImageFolders.add(subfolderName);
+            }
+	    }
+	    
+	    // collect all validations from the above method
+
+	    if (!invalidImageCountFolders.isEmpty()) {
+	        errorMessages.add("The following folders have an invalid image count (each must contain 3 to 5 images): " + invalidImageCountFolders);
 	    }
 
-	    redirectAttributes.addFlashAttribute("message", "Upload and validation complete.");
+	    if (!multipleHImageFolders.isEmpty()) {
+	        errorMessages.add("Only one _h.jpg image is allowed per folder. The following folders contain more than one _h.jpg image: " + multipleHImageFolders);
+	    }
+	    
+	    if (!duplicateFolders.isEmpty()) {
+	        errorMessages.add("Duplicate folder names found: " + duplicateFolders + ". Please check, delete the duplicates, and upload again.");
+	    }
+
+
+	    // Step 6: Validate folder names in DB
+	    List<String> missingFolders = productService.getMissingFolderNamesInDB(folderNames);
+	    if (!missingFolders.isEmpty()) {
+	        String missingCodes = String.join(", ", missingFolders);
+	        errorMessages.add("Does not Exists productDeptCode(s) in DB: " + missingCodes);
+	    }
+
+	    // Step 6: Collect and display all errors 
+	    if (!errorMessages.isEmpty()) {
+	        String combinedErrors = errorMessages.stream()
+	                .map(msg -> "<li>" + msg + "</li>")
+	                .collect(Collectors.joining());
+	        String formattedError = "<ul>" + combinedErrors + "</ul>";
+	        redirectAttributes.addFlashAttribute("errorMessage", formattedError);
+	        return "redirect:/upload";
+	    }
+
+	    // Step 7: Check existing images
+	    boolean existingImagesFound = productService.checkImagesExistsInDB(folderNames);
+	    if (existingImagesFound) {
+	        productService.deleteExistingImages(folderNames);
+	        redirectAttributes.addFlashAttribute("successMessage", "Existing images deleted. Uploading new images...");
+	    }
+
+	    // Step 8: Process images
+	    for (Map.Entry<String, List<MultipartFile>> entry2 : subfolderMap.entrySet()) {
+	        productService.processMultipartFiles(entry2.getKey(), entry2.getValue());
+	    }
+
+	    productService.printFinalInsertCounts();
+
+	    redirectAttributes.addFlashAttribute("successMessage", "image uploaded successfully thank you!.");
 	    return "redirect:/upload";
 	}
+	    
+	    
+	
+
+
+
+
+	
+
 
 
 

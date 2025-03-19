@@ -3,21 +3,19 @@ package com.image_upload_utility.service;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.web.multipart.MultipartFile;
+
 public interface ProductService {
-
-	public long getFolderSize(String folderPath);
 	
-	public List<String> validateSubfolderImageCount(String folderPath);
+	public List<String> getMissingFolderNamesInDB(List<String> folderNames);
 	
-	public List<String> getMissingFolderNamesInDB(String folderPath);
-	
-	public boolean checkImagesExistsInDB(String folderPath);
+	public boolean checkImagesExistsInDB(List<String> folderNames);
 
-	public void deleteExistingImages(String path);
+	public void deleteExistingImages(List<String> folderNames) ;
 
-	public Optional<String> findFolderWithMultipleHImages(String parentFolderPath);
+	public void processMultipartFiles(String subfolderName, List<MultipartFile> imageFiles);
 
-	public void processImages(String path);
+	public void printFinalInsertCounts();
 	
 	
 	
