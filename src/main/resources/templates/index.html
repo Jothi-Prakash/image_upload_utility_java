@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Select Folder and Subfolders</title>
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+    <h2>Image Upload Utility</h2>
+
+    <!-- Select Folder -->
+	<div class="upload-container">
+	    <label for="folderInput" class="upload-label">
+	        <img src="https://cdn-icons-png.flaticon.com/512/3767/3767084.png" alt="Folder Icon">
+	        Choose Folder
+	    </label>
+	    <input type="file" id="folderInput" webkitdirectory multiple>
+	   
+	</div>
+
+    <!-- Display Subfolders with Files -->
+    <div id="subfolderSection" class="hidden">
+        <h3>Select folders:</h3>
+        <div id="subfolderList" class="subfolder-container"></div>
+    </div>
+
+    <!-- Proceed Button -->
+    <button id="proceedBtn" class="hidden btn" onclick="submitData()">Proceed</button>
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>

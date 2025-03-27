@@ -92,6 +92,25 @@
 		    justify-content: center;
 		    font-size: 15px;
 		}
+		.custom-file-label {
+		    background: #f1f1f1;
+		    padding: 10px 15px;
+		    border: 2px dashed #ccc;
+		    border-radius: 10px;
+		    cursor: pointer;
+		    transition: border 0.3s ease;
+		}
+
+		.custom-file-label:hover {
+		    border-color: #007bff;
+		    background: #f8f9fa;
+		}
+
+		#fileLabelText {
+		    font-weight: 500;
+		    color: #333;
+		}
+
 
     </style>
 </head>
@@ -144,13 +163,19 @@
 			      th:style="${errorMessage != null or confirmMessage != null or successMessage !=null} ? 'display: none;' : 'display: block;'"
 			      onsubmit="return validateForm()">
 
-			    <div class="mb-3">
-			        <label class="form-label">Select Image Folder:</label>
-			        <input type="file" class="form-control" name="files" id="folderInput" webkitdirectory directory multiple />
-			        <div id="fileError" class="text-danger mt-2" style="display: none;">Please select a folder.</div>
-			        <!-- New File Info Section -->
-			        <div id="fileInfo" class="mt-2 text-primary fw-semibold" style="display: none;"></div>
-			    </div>
+				  <div class="mb-3">
+				      <label class="form-label fw-semibold">Select Image Folder:</label>
+				      
+				      <label for="folderInput" class="custom-file-label d-flex align-items-center" id="folderLabel">
+				          <i class="bi bi-folder-fill text-warning fs-4 me-2" id="folderIcon"></i>
+				          <span id="fileLabelText">Choose Folder</span>
+				      </label>
+				      
+				      <input type="file" class="d-none" name="files" id="folderInput" webkitdirectory multiple />
+				      
+				      <div id="fileError" class="text-danger mt-2" style="display: none;">Please select a folder.</div>
+				      <div id="fileInfo" class="mt-2 text-primary fw-semibold" style="display: none;"></div>
+				  </div>
 			    <button type="submit" class="btn btn-upload">Upload</button>
 			</form>
         </div>
@@ -163,55 +188,75 @@
 		document.getElementById("folderInput").addEventListener("change", function () {
 		    const files = this.files;
 		    const fileInfo = document.getElementById("fileInfo");
+		    const errorMsg = document.getElementById("fileError");
+		    const fileLabelText = document.getElementById("fileLabelText");
+		    const folderIcon = document.getElementById("folderIcon");
 
 		    if (files.length > 0) {
 		        const folderName = files[0].webkitRelativePath.split("/")[0];
 		        fileInfo.innerText = `Ready to upload ${files.length} files from folder "${folderName}".`;
 		        fileInfo.style.display = "block";
+
+		        // ✅ Update label text and hide icon
+		        fileLabelText.innerText = `${folderName} (${files.length} files)`;
+		        folderIcon.style.display = "none";
+
+		        // Hide error
+		        errorMsg.style.display = "none";
+		        this.classList.remove("border-danger");
 		    } else {
+		        // Reset
 		        fileInfo.style.display = "none";
+		        fileLabelText.innerText = "Choose Folder";
+		        folderIcon.style.display = "inline";
 		    }
 		});
+
 		function validateForm() {
 		    const folderInput = document.getElementById("folderInput");
 		    const errorMsg = document.getElementById("fileError");
 
-		    if (!folderInput.files.length) {
-		        folderInput.style.border = "2px solid red";
+		    if (folderInput.files.length === 0) {
 		        errorMsg.style.display = "block";
+		        folderInput.classList.add("border-danger"); 
 		        return false;
 		    } else {
-		        folderInput.style.border = "";
 		        errorMsg.style.display = "none";
+		        folderInput.classList.remove("border-danger");
 		        showLoading();
 		        return true;
 		    }
 		}
+
 		function showForm() {
 		    document.getElementById("uploadForm").style.display = "block";
+
+		    // Hide messages
 		    let errorMessageDiv = document.querySelector(".alert.alert-danger");
 		    if (errorMessageDiv) errorMessageDiv.style.display = "none";
 		    let confirmMessage = document.getElementById("confirmMessageContainer");
 		    if (confirmMessage) confirmMessage.style.display = "none";
 		    document.getElementById("cancelErrorMessage").style.display = "none";
+
+		    // Reset file input label and icon
+		    const fileLabelText = document.getElementById("fileLabelText");
+		    const folderIcon = document.getElementById("folderIcon");
+		    const fileInfo = document.getElementById("fileInfo");
+
+		    fileLabelText.innerText = "Choose Folder";
+		    folderIcon.style.display = "inline";
+		    fileInfo.style.display = "none";
+		    document.getElementById("folderInput").value = "";
 		}
 
-        function showErrorMessage() {
-            let confirmMessage = document.getElementById("confirmMessageContainer");
-            if (confirmMessage) {
-                confirmMessage.style.display = "none";
-            }
+		function showLoading() {
+		    document.getElementById("formLoadingOverlay").style.display = "flex";
+		}
 
-            document.getElementById("cancelErrorMessage").style.display = "block";
-        }
-
-        function showLoading() {
-            document.getElementById("formLoadingOverlay").style.display = "flex";
-        }
-
-        function hideLoading() {
-            document.getElementById("formLoadingOverlay").style.display = "none";
-        }
+		function hideLoading() {
+		    document.getElementById("formLoadingOverlay").style.display = "none";
+		}
+	
     </script>
 
 </body>

@@ -1,0 +1,12 @@
+<div th:each="entry : ${folderMap}">
+    <h3 th:text="'Folder: ' + ${entry.key}"></h3>
+    <div>
+        <div th:each="fileData : ${entry.value}">
+            <p th:text="${fileData.name}"></p>
+            <img th:src="'data:image/jpeg;base64,' + ${fileData.data}" alt="Image Preview"/>
+        </div>
+    </div>
+    <div th:if="${errorFolders.contains(entry.key)}" class="error">
+        Error: This folder has less than 2 images. Please reselect or fix images.
+    </div>
+</div>

@@ -1,0 +1,122 @@
+body {
+	font-family: Arial, sans-serif;
+	margin: 40px;
+	background-color: #f9f9f9;
+}
+
+.container {
+	background: #fff;
+	padding: 20px;
+	border-radius: 8px;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+	max-width: 500px;
+	margin: auto;
+}
+
+h2 {
+	color: #333;
+	text-align: center;
+}
+
+.hidden {
+	display: none;
+}
+
+.btn {
+	padding: 10px 20px;
+	border: none;
+	background: #007bff;
+	color: white;
+	border-radius: 5px;
+	cursor: pointer;
+	display: block;
+	width: 100%;
+	text-align: center;
+	margin-top: 20px;
+	height: 40px;
+}
+
+.btn:hover {
+	background: #0056b3;
+}
+
+select,
+input[type="file"] {
+	display: block;
+	width: 100%;
+	padding: 10px;
+	margin-top: 10px;
+	font-size: 16px;
+}
+
+/* Subfolder List Container */
+.subfolder-container {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-top: 10px;	
+	max-height: 320px;
+	overflow-y: auto;
+	border: 1px solid #ddd;
+	padding: 10px;
+	border-radius: 5px;
+	background: #f1f1f1;
+}
+
+.subfolder-column {
+	width: 48%;
+	/* Split into two columns */
+	min-width: 200px;
+}
+
+.subfolder-item {
+	margin-bottom: 5px;
+	font-size: 14px;
+	font-weight: bold;
+	margin-top: 5px;
+}
+
+.image-list {
+	margin-left: 20px;
+	font-size: 12px;
+	color: #666;
+}
+
+.image-list li {
+	list-style-type: circle;
+}
+
+.size-info {
+	font-size: 12px;
+	color: #444;
+}
+
+.upload-label {
+	display: block;
+	padding: 15px;
+	border: 2px dashed #ccc;
+	border-radius: 8px;
+	cursor: pointer;
+	font-size: 16px;
+	font-weight: bold;
+	color: #555;
+	text-align: left;
+	background-color: #f1f1f1;
+	height: 22px;
+	
+}
+
+.upload-label:hover {
+	background-color: #e9ecef;
+}
+
+.upload-label img {
+	width: 24px;
+	vertical-align: middle;
+	margin-right: 8px;
+}
+
+#folderInput {
+	display: none;
+}
+

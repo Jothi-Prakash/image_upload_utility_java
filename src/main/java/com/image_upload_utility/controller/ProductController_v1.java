@@ -1,6 +1,6 @@
 package com.image_upload_utility.controller;
 
-import java.util.ArrayList;
+import java.util.ArrayList; 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -22,7 +22,7 @@ import com.image_upload_utility.repository.ProductRepository;
 import com.image_upload_utility.service.ProductService;
 
 @Controller
-public class ProductController {
+public class ProductController_v1 {
 	
 	@Autowired
 	ProductRepository productRepository;
@@ -63,7 +63,7 @@ public class ProductController {
 	    
 	    // Step 3: Group files by subfolder
 	    Map<String, List<MultipartFile>> subfolderMap = new HashMap<>();
-	    Set<String> allFolderNames = new HashSet<>();  // Unique folder names
+	    Set<String> allFolderNames = new HashSet<>();  
 
 	    for (MultipartFile file : files) {
 	        String relativePath = file.getOriginalFilename();
@@ -73,7 +73,7 @@ public class ProductController {
 	        if (pathParts.length < 2) continue;
 
 	        String folderName = pathParts[1].trim();
-	        allFolderNames.add(folderName);  // Collect unique folder names
+	        allFolderNames.add(folderName); 
 
 	        subfolderMap.computeIfAbsent(folderName, k -> new ArrayList<>()).add(file);
 	    }
